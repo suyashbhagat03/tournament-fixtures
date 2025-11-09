@@ -1,0 +1,147 @@
+{
+  "rules": {
+    "tournaments": {
+      "Chess": {
+        ".read": true,
+        "rounds": {
+          "$roundIdx": {
+            "$matchIdx": {
+              ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'editor' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+              ".validate": "newData.exists() && newData.hasChildren(['player1', 'player2'])"
+            }
+          }
+        }
+      },
+      "TableTennis_Singles": {
+        ".read": true,
+        "rounds": {
+          "$roundIdx": {
+            "$matchIdx": {
+              ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'editor' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+              ".validate": "newData.exists() && newData.hasChildren(['player1', 'player2'])"
+            }
+          }
+        }
+      },
+      "TableTennis_Doubles": {
+        ".read": true,
+        "rounds": {
+          "$roundIdx": {
+            "$matchIdx": {
+              ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'editor' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+              ".validate": "newData.exists() && newData.hasChildren(['player1', 'player2'])"
+            }
+          }
+        }
+      },
+      "Carrom_Singles": {
+        ".read": true,
+        "rounds": {
+          "$roundIdx": {
+            "$matchIdx": {
+              ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'editor' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+              ".validate": "newData.exists() && newData.hasChildren(['player1', 'player2'])"
+            }
+          }
+        }
+      },
+      "Carrom_Doubles": {
+        ".read": true,
+        "rounds": {
+          "$roundIdx": {
+            "$matchIdx": {
+              ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'editor' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+              ".validate": "newData.exists() && newData.hasChildren(['player1', 'player2'])"
+            }
+          }
+        }
+      },
+      "Foosball": {
+        ".read": true,
+        "rounds": {
+          "$roundIdx": {
+            "$matchIdx": {
+              ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'editor' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+              ".validate": "newData.exists() && newData.hasChildren(['player1', 'player2'])"
+            }
+          }
+        }
+      },
+      "Snooker": {
+        ".read": true,
+        "rounds": {
+          "$roundIdx": {
+            "$matchIdx": {
+              ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'editor' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+              ".validate": "newData.exists() && newData.hasChildren(['player1', 'player2'])"
+            }
+          }
+        }
+      },
+      "FIFA25": {
+        ".read": true,
+        "rounds": {
+          "$roundIdx": {
+            "$matchIdx": {
+              ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'editor' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+              ".validate": "newData.exists() && newData.hasChildren(['player1', 'player2'])"
+            }
+          }
+        }
+      },
+      "$other": {
+        ".read": false,
+        ".write": false
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
+        ".validate": "newData.exists()",
+        "role": {
+          ".validate": "newData.val() == 'viewer' || newData.val() == 'editor' || newData.val() == 'admin'"
+        }
+      }
+    },
+    "contacts": {
+      "Chess": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
+      },
+      "TableTennis_Singles": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
+      },
+      "TableTennis_Doubles": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
+      },
+      "Carrom_Singles": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
+      },
+      "Carrom_Doubles": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
+      },
+      "Foosball": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
+      },
+      "Snooker": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
+      },
+      "FIFA25": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'"
+      },
+      "$other": {
+        ".read": false,
+        ".write": false
+      }
+    }
+  }
+}
+

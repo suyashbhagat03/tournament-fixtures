@@ -506,8 +506,17 @@
             const selected = match[player];
             if (match.winner === selected) {
                 match.winner = null;
+                // Clear subsequent rounds (winners, scores, and player names)
                 for (let i = roundIdx + 1; i < totalRounds; i++) {
-                    allRoundsData[i].forEach(m => { m.winner = null; m.score1 = ''; m.score2 = ''; });
+                    allRoundsData[i].forEach(m => { 
+                        m.winner = null; 
+                        m.score1 = ''; 
+                        m.score2 = ''; 
+                        m.player1 = 'TBD'; 
+                        m.player2 = 'TBD';
+                        m.manuallyEditedP1 = false;
+                        m.manuallyEditedP2 = false;
+                    });
                 }
             } else {
                 match.winner = selected;
