@@ -459,21 +459,33 @@
                 if (!allRoundsData[roundIdx] || allRoundsData[roundIdx].length !== matchesInThisRound) {
                     allRoundsData[roundIdx] = [];
                     for (let i = 0; i < matchesInThisRound; i++) {
-                        allRoundsData[roundIdx].push({ player1: 'TBD', player2: 'TBD', winner: null, score1: '', score2: '', time: '', matchId: i, isByeMatch: false });
+                        allRoundsData[roundIdx].push({ player1: 'TBD', player2: 'TBD', winner: null, score1: '', score2: '', time: '', matchId: i, isByeMatch: false , manuallyEditedP1: false, manuallyEditedP2: false });
                     }
                 }
                 for (let matchIdx = 0; matchIdx < matchesInThisRound; matchIdx++) {
                     const match = allRoundsData[roundIdx][matchIdx];
+                    
+                    // Only update player names if they are currently TBD or if winner has changed
+                    let newPlayer1, newPlayer2;
+                    
                     if (roundIdx === 1) {
                         const r2slots = [];
                         for (let i = 0; i < allRoundsData[0].length; i++) r2slots.push(allRoundsData[0][i].winner || 'TBD');
                         byePlayers.forEach(p => r2slots.push(p));
-                        match.player1 = r2slots[matchIdx * 2] || 'TBD';
-                        match.player2 = r2slots[matchIdx * 2 + 1] || 'TBD';
+                        newPlayer1 = r2slots[matchIdx * 2] || 'TBD';
+                        newPlayer2 = r2slots[matchIdx * 2 + 1] || 'TBD';
                     } else {
                         const prevRound = allRoundsData[roundIdx - 1];
-                        match.player1 = prevRound[matchIdx * 2]?.winner || 'TBD';
-                        match.player2 = prevRound[matchIdx * 2 + 1]?.winner || 'TBD';
+                        newPlayer1 = prevRound[matchIdx * 2]?.winner || 'TBD';
+                        newPlayer2 = prevRound[matchIdx * 2 + 1]?.winner || 'TBD';
+                    }
+                    
+                    // Only update if not manually edited and (TBD or different winner)
+                    if (!match.manuallyEditedP1 && (match.player1 === 'TBD' || (newPlayer1 !== 'TBD' && match.player1 !== newPlayer1))) {
+                        match.player1 = newPlayer1;
+                    }
+                    if (!match.manuallyEditedP2 && (match.player2 === 'TBD' || (newPlayer2 !== 'TBD' && match.player2 !== newPlayer2))) {
+                        match.player2 = newPlayer2;
                     }
                 }
             }
@@ -534,6 +546,9 @@
                 const old = match[player];
                 match[player] = newName.trim();
                 if (match.winner === old) match.winner = newName.trim();
+                // Mark as manually edited
+                if (player === 'player1') match.manuallyEditedP1 = true;
+                if (player === 'player2') match.manuallyEditedP2 = true;
             }
             editingState = { roundIdx: null, matchIdx: null, player: null };
             saveToFirebase();
