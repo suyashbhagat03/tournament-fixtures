@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Management - Insportsathon</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh; 
+            padding: 20px; 
+        }
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 15px; 
+            padding: 30px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+        }
+        h1 { 
+            color: #667eea; 
+            margin-bottom: 10px; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+        }
+        .subtitle { 
+            color: #666; 
+            margin-bottom: 30px; 
+            font-size: 14px; 
+        }
+        .sport-selector { 
+            margin-bottom: 20px; 
+        }
+        .sport-selector select { 
+            padding: 10px 15px; 
+            border: 2px solid #667eea; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            width: 300px; 
+        }
+        .search-box { 
+            margin-bottom: 20px; 
+        }
+        .search-box input { 
+            width: 100%; 
+            padding: 12px 15px; 
+            border: 2px solid #ddd; 
+            border-radius: 8px; 
+            font-size: 16px; 
+        }
+        .search-box input:focus { 
+            outline: none; 
+            border-color: #667eea; 
+        }
+        .contacts-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 20px; 
+        }
+        .contacts-table th { 
+            background: #667eea; 
+            color: white; 
+            padding: 12px; 
+            text-align: left; 
+            font-weight: bold; 
+        }
+        .contacts-table td { 
+            padding: 12px; 
+            border-bottom: 1px solid #ddd; 
+        }
+        .contacts-table tr:hover { 
+            background: #f5f5f5; 
+        }
+        .edit-btn, .save-btn, .cancel-btn { 
+            padding: 6px 12px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 13px; 
+            font-weight: bold; 
+            transition: all 0.3s; 
+        }
+        .edit-btn { 
+            background: #667eea; 
+            color: white; 
+        }
+        .edit-btn:hover { 
+            background: #5568d3; 
+        }
+        .save-btn { 
+            background: #4caf50; 
+            color: white; 
+            margin-right: 5px; 
+        }
+        .save-btn:hover { 
+            background: #45a049; 
+        }
+        .cancel-btn { 
+            background: #f44336; 
+            color: white; 
+        }
+        .cancel-btn:hover { 
+            background: #da190b; 
+        }
+        .edit-input { 
+            padding: 6px 10px; 
+            border: 2px solid #667eea; 
+            border-radius: 4px; 
+            font-size: 14px; 
+            width: 100%; 
+        }
+        .status { 
+            padding: 10px 15px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            display: none; 
+        }
+        .status.success { 
+            background: #d4edda; 
+            color: #155724; 
+            border: 1px solid #c3e6cb; 
+            display: block; 
+        }
+        .status.error { 
+            background: #f8d7da; 
+            color: #721c24; 
+            border: 1px solid #f5c6cb; 
+            display: block; 
+        }
+        .loading { 
+            text-align: center; 
+            padding: 40px; 
+            color: #667eea; 
+            font-size: 18px; 
+        }
+        .back-btn { 
+            display: inline-block; 
+            padding: 10px 20px; 
+            background: white; 
+            color: #667eea; 
+            border: 2px solid #667eea; 
+            border-radius: 8px; 
+            text-decoration: none; 
+            font-weight: bold; 
+            margin-bottom: 20px; 
+            transition: all 0.3s; 
+        }
+        .back-btn:hover { 
+            background: #667eea; 
+            color: white; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="user_management.html" class="back-btn">← Back to User Management</a>
+        
+        <h1>📞 Contact Information Management</h1>
+        <p class="subtitle">Update player email addresses and phone numbers for all sports</p>
+        
+        <div id="status" class="status"></div>
+        
+        <div class="sport-selector">
+            <label for="sport-select"><strong>Select Sport:</strong></label><br>
+            <select id="sport-select" onchange="loadContacts()">
+                <option value="">-- Select a Sport --</option>
+                <option value="TableTennis_Singles">Table Tennis - Singles</option>
+                <option value="TableTennis_Doubles">Table Tennis - Doubles</option>
+                <option value="Carrom_Singles">Carrom - Singles</option>
+                <option value="Carrom_Doubles">Carrom - Doubles</option>
+                <option value="Foosball">Foosball</option>
+                <option value="Snooker">Snooker</option>
+                <option value="FIFA25">FIFA 25</option>
+                <option value="Chess">Chess</option>
+            </select>
+        </div>
+        
+        <div class="search-box">
+            <input type="text" id="search" placeholder="🔍 Search by name, email, or phone..." oninput="filterContacts()">
+        </div>
+        
+        <div id="loading" class="loading" style="display: none;">Loading contacts...</div>
+        
+        <table class="contacts-table" id="contacts-table" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Player Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="contacts-body">
+            </tbody>
+        </table>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC2-o5Oo1y0Qkv8JRKa9eM9T4DKzg_fNEQ",
+            authDomain: "insportsathon.firebaseapp.com",
+            databaseURL: "https://insportsathon-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "insportsathon",
+            storageBucket: "insportsathon.firebasestorage.app",
+            messagingSenderId: "197165877753",
+            appId: "1:197165877753:web:caa11db729bb62932f5528"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const auth = getAuth(app);
+
+        let currentUser = null;
+        let userRole = null;
+        let currentSport = '';
+        let allContacts = {};
+
+        // Check authentication
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                const roleRef = ref(db, `users/${user.uid}/role`);
+                const snapshot = await get(roleRef);
+                userRole = snapshot.val();
+                
+                if (userRole !== 'admin') {
+                    showStatus('error', 'Access Denied: Admin only');
+                    setTimeout(() => window.location.href = 'index.html', 2000);
+                }
+            } else {
+                showStatus('error', 'Please login first');
+                setTimeout(() => window.location.href = 'setup_admin.html', 2000);
+            }
+        });
+
+        window.loadContacts = async function() {
+            const sport = document.getElementById('sport-select').value;
+            if (!sport) return;
+            
+            currentSport = sport;
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('contacts-table').style.display = 'none';
+            
+            try {
+                const contactsRef = ref(db, `contacts/${sport}`);
+                const snapshot = await get(contactsRef);
+                
+                if (snapshot.exists()) {
+                    allContacts = snapshot.val();
+                } else {
+                    allContacts = {};
+                    showStatus('error', 'No contacts found for this sport. Contacts will be initialized when bracket is first loaded.');
+                }
+                
+                renderContacts();
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('contacts-table').style.display = 'table';
+            } catch (error) {
+                console.error('Error loading contacts:', error);
+                showStatus('error', 'Error loading contacts: ' + error.message);
+                document.getElementById('loading').style.display = 'none';
+            }
+        };
+
+        function renderContacts() {
+            const tbody = document.getElementById('contacts-body');
+            tbody.innerHTML = '';
+            
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            
+            Object.entries(allContacts).forEach(([name, contact]) => {
+                // Filter by search term
+                if (searchTerm && !name.toLowerCase().includes(searchTerm) && 
+                    !contact.email.toLowerCase().includes(searchTerm) && 
+                    !contact.phone.includes(searchTerm)) {
+                    return;
+                }
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${name}</strong></td>
+                    <td id="email-${name.replace(/\s/g, '_')}">${contact.email || 'N/A'}</td>
+                    <td id="phone-${name.replace(/\s/g, '_')}">${contact.phone || 'N/A'}</td>
+                    <td>
+                        <button class="edit-btn" onclick="startEdit('${name.replace(/'/g, "\\'")}')">✏️ Edit</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            if (tbody.children.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 40px; color: #999;">No contacts found</td></tr>';
+            }
+        }
+
+        window.filterContacts = function() {
+            renderContacts();
+        };
+
+        window.startEdit = function(name) {
+            const contact = allContacts[name];
+            const safeName = name.replace(/\s/g, '_');
+            
+            const emailCell = document.getElementById(`email-${safeName}`);
+            const phoneCell = document.getElementById(`phone-${safeName}`);
+            
+            emailCell.innerHTML = `<input type="email" class="edit-input" id="edit-email-${safeName}" value="${contact.email || ''}">`;
+            phoneCell.innerHTML = `<input type="tel" class="edit-input" id="edit-phone-${safeName}" value="${contact.phone || ''}">`;
+            
+            const row = emailCell.parentElement;
+            row.cells[3].innerHTML = `
+                <button class="save-btn" onclick="saveEdit('${name.replace(/'/g, "\\'")}')">✓ Save</button>
+                <button class="cancel-btn" onclick="cancelEdit('${name.replace(/'/g, "\\'")}')">✗ Cancel</button>
+            `;
+        };
+
+        window.saveEdit = async function(name) {
+            const safeName = name.replace(/\s/g, '_');
+            const newEmail = document.getElementById(`edit-email-${safeName}`).value.trim();
+            const newPhone = document.getElementById(`edit-phone-${safeName}`).value.trim();
+            
+            if (!newEmail || !newPhone) {
+                alert('Email and phone are required');
+                return;
+            }
+            
+            try {
+                // Update in memory
+                allContacts[name] = { email: newEmail, phone: newPhone };
+                
+                // Save to Firebase
+                const contactsRef = ref(db, `contacts/${currentSport}`);
+                await set(contactsRef, allContacts);
+                
+                showStatus('success', `Contact updated for ${name}`);
+                renderContacts();
+            } catch (error) {
+                console.error('Error saving contact:', error);
+                showStatus('error', 'Error saving contact: ' + error.message);
+            }
+        };
+
+        window.cancelEdit = function(name) {
+            renderContacts();
+        };
+
+        function showStatus(type, message) {
+            const statusEl = document.getElementById('status');
+            statusEl.className = `status ${type}`;
+            statusEl.textContent = message;
+            
+            setTimeout(() => {
+                statusEl.className = 'status';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+

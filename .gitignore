@@ -1,0 +1,142 @@
+# ========================================
+# Firebase & Build Files
+# ========================================
+.firebase/
+firebase-debug.log
+.firebaserc
+*.log
+
+# ========================================
+# Node.js & Dependencies
+# ========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# ========================================
+# Operating System Files
+# ========================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# ========================================
+# IDE & Editor Files
+# ========================================
+# VSCode
+.vscode/
+*.code-workspace
+
+# JetBrains (WebStorm, IntelliJ, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# ========================================
+# Python Files (Build Scripts)
+# ========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+
+# ========================================
+# Documentation (Optional - Uncomment to ignore)
+# ========================================
+# Uncomment these if you don't want to version control all documentation
+# *_FIX.md
+# *_GUIDE.md
+# *_SUMMARY.md
+# *_ANALYSIS.md
+# *_INSTRUCTIONS.md
+# *_CHECKLIST.md
+# *_OPTIONS.md
+# *_COMPLETE.md
+
+# Keep these important docs:
+# !README.md
+# !FIREBASE_SETUP_GUIDE.md
+# !DEPLOYMENT_FILE_LIST.md
+
+# ========================================
+# Temporary & Generated Files
+# ========================================
+*.tmp
+*.bak
+*.orig
+*.rej
+.cache/
+dist/
+build/
+
+# ========================================
+# Sensitive & Environment Files
+# ========================================
+.env
+.env.local
+.env.*.local
+secrets/
+*.pem
+*.key
+
+# ========================================
+# Data Files (Optional - Uncomment if needed)
+# ========================================
+# Uncomment if you don't want to version control data files
+*.csv
+Fixtures_*.txt
+tournament_data/
+
+# Keep original registration data as backup
+!Insportsathon Responses - Sheet2.csv
+
+# ========================================
+# Deployment & Scripts (Optional)
+# ========================================
+# Uncomment if you don't want to version control deployment scripts
+# deploy.sh
+# deploy-now.sh
+# start_server.sh
+
+# ========================================
+# Firebase Hosting Public Folder (if used)
+# ========================================
+# Uncomment if you move files to a public/ folder
+# public/
+
+# ========================================
+# Git-specific
+# ========================================
+*.orig
+*.patch
+*.diff
+

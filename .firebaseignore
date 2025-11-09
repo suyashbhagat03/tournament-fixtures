@@ -1,0 +1,39 @@
+# Git files
+.git
+.gitignore
+
+# Python files
+*.py
+__pycache__/
+*.pyc
+
+# Scripts
+*.sh
+deploy.sh
+deploy-now.sh
+
+# Documentation (optional - remove if you want to deploy docs)
+*.md
+DEPLOY_GUIDE.md
+FIREBASE_SETUP_GUIDE.md
+DEPLOYMENT_OPTIONS.md
+QUICK_DEPLOY.md
+
+# Source data (optional - remove if you want to deploy CSVs)
+# *.csv
+
+# Firebase files
+.firebaserc
+firebase.json
+.firebase/
+
+# Node modules (if any)
+node_modules/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+

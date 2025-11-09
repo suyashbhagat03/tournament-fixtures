@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrom Singles - Tournament Bracket</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .header { text-align: center; color: white; margin-bottom: 30px; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .header .info { background: rgba(255,255,255,0.2); display: inline-block; padding: 10px 20px; border-radius: 20px; margin-top: 10px; }
+        .firebase-status { background: rgba(255,255,255,0.3); display: inline-block; padding: 8px 16px; border-radius: 15px; margin-top: 10px; font-size: 14px; }
+        .firebase-status.connected { background: rgba(76,175,80,0.4); }
+        .firebase-status.syncing { background: rgba(255,152,0,0.4); }
+        .firebase-status.disconnected { background: rgba(244,67,54,0.4); }
+        .firebase-status.pending { background: rgba(255,193,7,0.4); }
+        .controls { text-align: center; margin-bottom: 20px; }
+        .controls button { background: white; border: none; padding: 12px 24px; margin: 0 10px; border-radius: 25px; cursor: pointer; font-size: 16px; font-weight: bold; color: #667eea; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: all 0.3s; }
+        .controls button:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.2); }
+        .instructions { background: rgba(255,255,255,0.9); padding: 15px 25px; border-radius: 10px; margin: 0 auto 20px; max-width: 900px; text-align: center; color: #333; font-size: 14px; }
+        .instructions strong { color: #667eea; }
+        .instructions.setup-required { background: rgba(255,193,7,0.9); border: 2px solid #FF9800; }
+        .instructions.setup-required strong { color: #E65100; }
+        .auto-badge { background: #4caf50; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; margin-left: 8px; }
+        .bye-badge { background: #FFC107; color: #000; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: bold; }
+        
+        /* =================================== */
+        /* AUTHENTICATION STYLES */
+        /* =================================== */
+        .auth-container { position: fixed; top: 20px; right: 20px; z-index: 1000; }
+        .auth-info { background: rgba(255,255,255,0.95); padding: 12px 20px; border-radius: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 12px; }
+        .auth-info.viewer { border: 2px solid #9E9E9E; }
+        .auth-info.editor { border: 2px solid #4CAF50; }
+        .auth-info.admin { border: 2px solid #FF5722; }
+        .role-badge { padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .role-badge.viewer { background: #E0E0E0; color: #424242; }
+        .role-badge.editor { background: #4CAF50; color: white; }
+        .role-badge.admin { background: #FF5722; color: white; }
+        .user-email { font-size: 13px; color: #666; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .auth-btn { background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 15px; cursor: pointer; font-size: 13px; font-weight: bold; transition: all 0.3s; }
+        .auth-btn:hover { background: #5568d3; transform: scale(1.05); }
+        .logout-btn { background: #f44336; }
+        .logout-btn:hover { background: #da190b; }
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); }
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 400px; width: 90%; animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { text-align: center; margin-bottom: 30px; }
+        .modal-header h2 { color: #667eea; font-size: 24px; margin-bottom: 10px; }
+        .modal-header p { color: #666; font-size: 14px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; font-size: 14px; }
+        .form-group input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: border-color 0.3s; }
+        .form-group input:focus { outline: none; border-color: #667eea; }
+        .form-error { color: #f44336; font-size: 13px; margin-top: 8px; display: none; }
+        .form-error.show { display: block; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 25px; }
+        .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+        .modal-btn-primary { background: #667eea; color: white; }
+        .modal-btn-primary:hover { background: #5568d3; }
+        .modal-btn-secondary { background: #e0e0e0; color: #666; }
+        .modal-btn-secondary:hover { background: #d0d0d0; }
+        .read-only-notice { background: rgba(255,193,7,0.1); border: 2px solid #FFC107; border-radius: 10px; padding: 15px; margin: 15px auto; max-width: 900px; text-align: center; color: #F57C00; font-weight: bold; }
+        .read-only-notice .lock-icon { font-size: 20px; margin-right: 8px; }
+        .bracket-container { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); overflow-x: auto; }
+        .bracket { display: flex; gap: 50px; min-width: fit-content; padding: 20px; }
+        .round { display: flex; flex-direction: column; justify-content: space-around; min-width: 320px; }
+        .round-title { text-align: center; font-weight: bold; font-size: 18px; color: #667eea; margin-bottom: 20px; padding: 10px; background: #f0f4ff; border-radius: 8px; }
+        .match { background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 10px; margin: 15px 0; overflow: hidden; transition: all 0.3s; }
+        .match:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateX(5px); }
+        .match-header { background: #667eea; color: white; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; }
+        .match-number { font-size: 13px; font-weight: bold; }
+        .match-time { display: flex; align-items: center; gap: 5px; }
+        .match-time input { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; width: 200px; }
+        .match-time input::placeholder { color: rgba(255,255,255,0.7); }
+        .player-row { display: flex; align-items: center; border-bottom: 1px solid #e0e0e0; min-height: 55px; }
+        .player-row:last-child { border-bottom: none; }
+        .player { flex: 1; padding: 12px 15px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 10px; position: relative; }
+        .player:not(.tbd):hover { background: #e3f2fd; }
+        .player.winner { background: #4caf50; color: white; font-weight: bold; }
+        .player.winner:hover { background: #45a049; }
+        .player.tbd { background: #f5f5f5; color: #999; font-style: italic; cursor: not-allowed; }
+        .player-name { flex: 1; display: flex; align-items: center; gap: 8px; }
+        .name-text { flex: 1; }
+        .name-input { flex: 1; padding: 6px 10px; border: 2px solid #667eea; border-radius: 4px; font-size: 14px; font-weight: 500; }
+        .name-input:focus { outline: none; box-shadow: 0 0 0 2px rgba(102,126,234,0.2); }
+        .edit-btn { background: #667eea; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; opacity: 0; transition: opacity 0.2s; }
+        .player:hover .edit-btn { opacity: 1; }
+        .edit-btn:hover { background: #5568d3; }
+        .save-btn { background: #4caf50; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-left: 4px; }
+        .save-btn:hover { background: #45a049; }
+        .cancel-btn { background: #f44336; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-left: 4px; }
+        .cancel-btn:hover { background: #da190b; }
+        .score-input { width: 50px; padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; text-align: center; font-size: 14px; font-weight: bold; }
+        .score-input:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 2px rgba(102,126,234,0.1); }
+        .winner-badge { background: #ffd700; color: #000; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .contact-tooltip { position: absolute; background: #2c3e50; color: white; padding: 12px 16px; border-radius: 8px; font-size: 12px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); pointer-events: none; opacity: 0; transition: opacity 0.2s; min-width: 280px; line-height: 1.6; }
+        .contact-tooltip.show { opacity: 1; }
+        .contact-tooltip .contact-header { font-weight: bold; margin-bottom: 8px; color: #3498db; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 6px; }
+        .contact-tooltip .contact-item { margin: 4px 0; display: flex; align-items: center; gap: 8px; }
+        .contact-tooltip .contact-icon { color: #3498db; font-weight: bold; width: 18px; }
+        .contact-tooltip .contact-value { color: #ecf0f1; word-break: break-all; }
+        .contact-tooltip .player-divider { height: 1px; background: rgba(255,255,255,0.2); margin: 8px 0; }
+        .byes-section { margin-top: 30px; padding: 20px; background: #fff3cd; border-radius: 10px; border-left: 4px solid #ffc107; }
+        .byes-section h3 { color: #856404; margin-bottom: 10px; }
+        .bye-list { display: flex; flex-wrap: wrap; gap: 10px; }
+        .bye-item { background: white; padding: 8px 15px; border-radius: 20px; border: 2px solid #ffc107; font-weight: 500; }
+        .final-section { margin-top: 30px; padding: 40px; background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%); border-radius: 15px; text-align: center; display: none; animation: celebrate 0.5s ease-in; }
+        .final-section.show { display: block; }
+        @keyframes celebrate { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .champion { font-size: 2.5em; font-weight: bold; color: #333; margin-top: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }
+        .final-score { font-size: 1.2em; color: #666; margin-top: 10px; }
+        .reset-btn { background: #f44336 !important; color: white !important; }
+        .back-btn { background: #2196F3 !important; color: white !important; }
+        @media print { body { background: white; } .controls, .instructions, .edit-btn, .contact-tooltip, .firebase-status { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏆 Carrom Singles</h1>
+        <div class="info"><strong>60</strong> Participants | <strong>6</strong> Rounds | <strong>4</strong> Byes to Round 2</div>
+        <div class="firebase-status pending" id="firebase-status">🔥 Firebase: Setting up...</div>
+    </div>
+    <div class="instructions setup-required" id="instructions">
+        <strong>⚠️ FIREBASE SETUP REQUIRED:</strong> See <code>FIREBASE_SETUP_GUIDE.md</code> to configure Firebase. 
+        Once configured, changes will auto-sync in real-time! 🔥
+         | <strong>4 Players</strong> skip Round 1 <span class="bye-badge">BYE</span>
+    </div>
+    
+    <!-- Authentication Container -->
+    <div class="auth-container">
+        <div class="auth-info" id="auth-info" style="display: none;">
+            <span class="user-email" id="user-email"></span>
+            <span class="role-badge" id="role-badge"></span>
+            <button class="auth-btn logout-btn" onclick="logout()">Logout</button>
+        </div>
+        <button class="auth-btn" id="login-btn" onclick="showLoginModal()">Login</button>
+    </div>
+    
+    <!-- Read-Only Notice -->
+    <div class="read-only-notice" id="read-only-notice" style="display: none;">
+        <span class="lock-icon">🔒</span>
+        <span>You're in READ-ONLY mode. Login to edit brackets.</span>
+    </div>
+    
+    <!-- Login Modal -->
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔐 Login</h2>
+                <p>Enter your credentials to access edit mode</p>
+            </div>
+            <div class="form-group">
+                <label for="login-email">Email</label>
+                <input type="email" id="login-email" placeholder="your.email@example.com" autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" placeholder="Enter your password" autocomplete="current-password">
+            </div>
+            <div class="form-error" id="login-error"></div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-secondary" onclick="hideLoginModal()">Cancel</button>
+                <button class="modal-btn modal-btn-primary" onclick="loginWithEmail()">Login</button>
+            </div>
+        </div>
+    </div>
+    <div class="controls">
+        <button class="back-btn" onclick="window.location.href='index.html'">⬅️ Back</button>
+        <button onclick="resetBracket()">🗑️ Reset</button>
+        <button onclick="window.print()">🖨️ Print</button>
+    </div>
+    
+    <div class="bracket-container">
+        <div id="bracket" class="bracket"></div>
+        <div class="byes-section"><h3>🎫 4 Players Automatically in Round 2 (Skip Round 1)</h3><div class="bye-list"><div class=\"bye-item\">Yaswanth Sai Geeth Balivada</div><div class=\"bye-item\">Preeti Singh</div><div class=\"bye-item\">Aditya Tiwari</div><div class=\"bye-item\">Meha Shukla</div></div></div>
+        <div class="final-section" id="final-section">
+            <h2>🏆 CHAMPION 🏆</h2>
+            <div class="champion" id="champion-name"></div>
+            <div class="final-score" id="final-score"></div>
+        </div>
+    </div>
+    <div class="contact-tooltip" id="contact-tooltip"></div>
+    
+    <script type="module">
+        // ========================================
+        // FIREBASE CONFIGURATION
+        // ========================================
+        // TODO: Replace with your Firebase config from Firebase Console
+        // Instructions: See FIREBASE_SETUP_GUIDE.md
+        const firebaseConfig = {
+            apiKey: "AIzaSyC2-o5Oo1y0Qkv8JRKa9eM9T4DKzg_fNEQ",
+            authDomain: "insportsathon.firebaseapp.com",
+            databaseURL: "https://insportsathon-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "insportsathon",
+            storageBucket: "insportsathon.firebasestorage.app",
+            messagingSenderId: "197165877753",
+            appId: "1:197165877753:web:caa11db729bb62932f5528"
+        };
+        
+        // Check if Firebase is configured
+        const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY_HERE";
+        
+        // Import Firebase modules
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, onValue, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        
+        // Initialize Firebase
+        let db = null;
+        let dataRef = null;
+        
+        // Auth variables (outside Firebase block for global access)
+        let currentUser = null;
+        let userRole = 'viewer'; // default: read-only
+        
+        if (isFirebaseConfigured) {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getDatabase(app);
+                dataRef = ref(db, `tournaments/Carrom_Singles`);
+        
+        // ========================================
+        // AUTHENTICATION & ACCESS CONTROL
+        // ========================================
+        const auth = getAuth(app);
+        
+        // Check authentication state
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                // Get user role from database
+                const userRoleRef = ref(db, `users/${user.uid}/role`);
+                const snapshot = await get(userRoleRef);
+                userRole = snapshot.exists() ? snapshot.val() : 'viewer';
+                
+                // Update UI
+                document.getElementById('login-btn').style.display = 'none';
+                document.getElementById('auth-info').style.display = 'flex';
+                document.getElementById('auth-info').className = `auth-info ${userRole}`;
+                document.getElementById('user-email').textContent = user.email;
+                document.getElementById('role-badge').textContent = userRole;
+                document.getElementById('role-badge').className = `role-badge ${userRole}`;
+                
+                // Show/hide read-only notice
+                if (userRole === 'viewer') {
+                    document.getElementById('read-only-notice').style.display = 'block';
+                } else {
+                    document.getElementById('read-only-notice').style.display = 'none';
+                }
+                
+                // Enable/disable edit features
+                isEditModeEnabled = (userRole !== 'viewer');
+                applyEditControls();
+                console.log(`✅ Logged in as ${user.email} (${userRole})`);
+            } else {
+                currentUser = null;
+                userRole = 'viewer';
+                
+                // Update UI
+                document.getElementById('login-btn').style.display = 'block';
+                document.getElementById('auth-info').style.display = 'none';
+                document.getElementById('read-only-notice').style.display = 'block';
+                
+                // Disable edit features
+                isEditModeEnabled = false;
+                applyEditControls();
+                console.log('👁️ Viewing as guest (read-only)');
+            }
+        });
+        
+        // Login/Logout functions
+        window.showLoginModal = function() {
+            document.getElementById('login-modal').classList.add('show');
+            document.getElementById('login-email').focus();
+        };
+        
+        window.hideLoginModal = function() {
+            document.getElementById('login-modal').classList.remove('show');
+            document.getElementById('login-error').classList.remove('show');
+            document.getElementById('login-email').value = '';
+            document.getElementById('login-password').value = '';
+        };
+        
+        window.loginWithEmail = async function() {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const errorEl = document.getElementById('login-error');
+            
+            if (!email || !password) {
+                errorEl.textContent = 'Please enter both email and password';
+                errorEl.classList.add('show');
+                return;
+            }
+            
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                hideLoginModal();
+            } catch (error) {
+                console.error('Login error:', error);
+                errorEl.textContent = error.message || 'Login failed. Please check your credentials.';
+                errorEl.classList.add('show');
+            }
+        };
+        
+        window.logout = async function() {
+            if (confirm('Are you sure you want to logout?')) {
+                try {
+                    await signOut(auth);
+                    console.log('✅ Logged out successfully');
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    alert('Logout failed: ' + error.message);
+                }
+            }
+        };
+        
+        // Enter key to login
+        document.getElementById('login-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') loginWithEmail();
+        });
+
+                updateFirebaseStatus('🔥 Connected', 'connected');
+                document.getElementById('instructions').classList.remove('setup-required');
+                document.getElementById('instructions').innerHTML = '<strong>🔥 Firebase:</strong> Real-time sync active <span class="auto-badge">LIVE</span> | <strong>4 Players</strong> skip Round 1 <span class="bye-badge">BYE</span>';
+            } catch (error) {
+                console.error('Firebase init error:', error);
+                updateFirebaseStatus('🔥 Connection Error', 'disconnected');
+            }
+        } else {
+            updateFirebaseStatus('🔥 Not Configured', 'pending');
+        }
+        
+        // Apply edit controls (called after bracket renders)
+        function applyEditControls() {
+            const enabled = isEditModeEnabled;
+            // Disable player selection
+            document.querySelectorAll('.player').forEach(player => {
+                if (!player.classList.contains('tbd')) {
+                    player.style.pointerEvents = enabled ? 'auto' : 'none';
+                    player.style.cursor = enabled ? 'pointer' : 'not-allowed';
+                }
+            });
+            
+            // Disable score inputs
+            document.querySelectorAll('.score-input').forEach(input => {
+                input.disabled = !enabled;
+                input.style.cursor = enabled ? 'text' : 'not-allowed';
+                input.style.opacity = enabled ? '1' : '0.6';
+            });
+            
+            // Disable time inputs
+            document.querySelectorAll('.match-time input').forEach(input => {
+                input.disabled = !enabled;
+                input.style.cursor = enabled ? 'text' : 'not-allowed';
+                input.style.opacity = enabled ? '1' : '0.6';
+            });
+            
+            // Disable edit buttons
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.disabled = !enabled;
+                btn.style.display = enabled ? 'inline-block' : 'none';
+            });
+            
+            // Reset button - ONLY for admin users
+            document.querySelectorAll('.controls button').forEach(btn => {
+                if (btn.textContent.includes('Reset') || btn.textContent.includes('🗑️')) {
+                    // Only admins can reset
+                    const isAdmin = userRole === 'admin';
+                    btn.disabled = !isAdmin;
+                    btn.style.opacity = isAdmin ? '1' : '0.5';
+                    btn.style.cursor = isAdmin ? 'pointer' : 'not-allowed';
+                }
+                // Back and Print buttons remain enabled for all users
+            });
+        }
+        
+        // ========================================
+        // TOURNAMENT DATA
+        // ========================================
+        const SPORT_KEY = 'Carrom_Singles';
+        const initialRoundsData = [[{"player1": "Govind Yadav", "player2": "Sai Nikhil Komuravelli", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 0, "isByeMatch": false}, {"player1": "Sumeet Mohapatra", "player2": "Sukhbeer Singh", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 1, "isByeMatch": false}, {"player1": "Nikhil verma", "player2": "Dhruvesh Bhure", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 2, "isByeMatch": false}, {"player1": "Siji George", "player2": "Shashank Mittal", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 3, "isByeMatch": false}, {"player1": "Aditya Bub", "player2": "Pathik Shah", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 4, "isByeMatch": false}, {"player1": "Prasad Ghone", "player2": "Mukundhan S", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 5, "isByeMatch": false}, {"player1": "Sonu kumar", "player2": "Premavatipeta Nyapati P V Shravya", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 6, "isByeMatch": false}, {"player1": "Deep Karmakar", "player2": "Naveen Dabburi", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 7, "isByeMatch": false}, {"player1": "Haraprasad Mohanty", "player2": "Dhaval Khairnar", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 8, "isByeMatch": false}, {"player1": "Suryababu Sakthivel", "player2": "Abhishek Lodha", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 9, "isByeMatch": false}, {"player1": "Anshul Nawal", "player2": "Naveen Kumar", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 10, "isByeMatch": false}, {"player1": "Hemant Jain", "player2": "Rashmi Mantri", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 11, "isByeMatch": false}, {"player1": "Lakshya Kumawat", "player2": "Md Shahbaz Akhtar", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 12, "isByeMatch": false}, {"player1": "Tushar Agrawal", "player2": "Deepthi", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 13, "isByeMatch": false}, {"player1": "Vedank Singh", "player2": "KUMAR MOHIT", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 14, "isByeMatch": false}, {"player1": "ANANT GIRIA", "player2": "Hirak Jyoti Borah", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 15, "isByeMatch": false}, {"player1": "Anusha T", "player2": "Bharatkumar", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 16, "isByeMatch": false}, {"player1": "Deepak Radhakrishna", "player2": "Vijay Pal", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 17, "isByeMatch": false}, {"player1": "Ramakrishna kommuri", "player2": "Nanhe Pandey", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 18, "isByeMatch": false}, {"player1": "Aamir khakhu", "player2": "Sachidhanandhan Sivakumar", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 19, "isByeMatch": false}, {"player1": "SAURAV KUMAR", "player2": "Reddy Prasad Pappireddy", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 20, "isByeMatch": false}, {"player1": "Aditi Gupta", "player2": "Ritika Lawankar", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 21, "isByeMatch": false}, {"player1": "Vatsal Gupta", "player2": "Aayaan Khan", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 22, "isByeMatch": false}, {"player1": "Amit Kumar", "player2": "Akhil rao p", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 23, "isByeMatch": false}, {"player1": "Sumit Kumar", "player2": "Ravi Shankar Sridevarakonda", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 24, "isByeMatch": false}, {"player1": "Suhaas D", "player2": "Bharath Urs", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 25, "isByeMatch": false}, {"player1": "Sudhanshu Mallick", "player2": "Mukundhan S", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 26, "isByeMatch": false}, {"player1": "Mohit Kumar", "player2": "Vaishnavi Srinivasan", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 27, "isByeMatch": false}], [{"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 0, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 1, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 2, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 3, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 4, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 5, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 6, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 7, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 8, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 9, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 10, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 11, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 12, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 13, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 14, "isByeMatch": false}, {"player1": "TBD", "player2": "TBD", "winner": null, "score1": "", "score2": "", "time": "", "matchId": 15, "isByeMatch": false}]];
+        const byePlayers = new Set(["Yaswanth Sai Geeth Balivada", "Preeti Singh", "Aditya Tiwari", "Meha Shukla"]);
+        // Contact info - loaded from Firebase
+        let contactInfo = {};  // Loaded asynchronously from Firebase (no hardcoded data)
+        let contactsLoading = true;  // Track if contacts are still loading
+        const totalRounds = 6;
+        const bracketSize = 64;
+        const isDoubles = false;
+        
+        let allRoundsData = [];
+        let editingState = { roundIdx: null, matchIdx: null, player: null };
+        let tooltipTimeout = null;
+        let saveTimeout = null;
+        let isEditModeEnabled = false; // Track if edit features should be enabled
+        
+        function updateFirebaseStatus(message, status) {
+            const el = document.getElementById('firebase-status');
+            el.textContent = message;
+            el.className = 'firebase-status ' + status;
+        }
+        
+        function saveToFirebase() {
+            if (!isFirebaseConfigured || !dataRef) return;
+            
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                updateFirebaseStatus('🔥 Syncing...', 'syncing');
+                set(dataRef, allRoundsData)
+                    .then(() => {
+                        updateFirebaseStatus('🔥 Synced ✓', 'connected');
+                    })
+                    .catch((error) => {
+                        console.error('Firebase save error:', error);
+                        updateFirebaseStatus('🔥 Save Failed', 'disconnected');
+                    });
+            }, 500); // Debounce saves
+        }
+        
+        function loadFromFirebase() {
+            if (!isFirebaseConfigured || !dataRef) {
+                    initializeBracket();
+                    renderBracket();
+                    return;
+                }
+                
+            // Set up real-time listener
+            onValue(dataRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    allRoundsData = snapshot.val();
+                    renderBracket();
+                    updateFirebaseStatus('🔥 Live Sync Active', 'connected');
+                } else {
+                    // No data yet, initialize
+                    initializeBracket();
+                    saveToFirebase();
+                    renderBracket();
+                }
+            }, (error) => {
+                console.error('Firebase load error:', error);
+                updateFirebaseStatus('🔥 Load Failed', 'disconnected');
+                // Fallback to local
+                initializeBracket();
+                renderBracket();
+            });
+        }
+        
+        function initializeBracket() {
+            allRoundsData = JSON.parse(JSON.stringify(initialRoundsData));
+            for (let i = allRoundsData.length; i < totalRounds; i++) allRoundsData[i] = [];
+        }
+        
+        function buildBracketTree() {
+            for (let roundIdx = 1; roundIdx < totalRounds; roundIdx++) {
+                const matchesInThisRound = bracketSize / Math.pow(2, roundIdx + 1);
+                if (!allRoundsData[roundIdx] || allRoundsData[roundIdx].length !== matchesInThisRound) {
+                    allRoundsData[roundIdx] = [];
+                    for (let i = 0; i < matchesInThisRound; i++) {
+                        allRoundsData[roundIdx].push({ player1: 'TBD', player2: 'TBD', winner: null, score1: '', score2: '', time: '', matchId: i, isByeMatch: false });
+                    }
+                }
+                for (let matchIdx = 0; matchIdx < matchesInThisRound; matchIdx++) {
+                    const match = allRoundsData[roundIdx][matchIdx];
+                    if (roundIdx === 1) {
+                        const r2slots = [];
+                        for (let i = 0; i < allRoundsData[0].length; i++) r2slots.push(allRoundsData[0][i].winner || 'TBD');
+                        byePlayers.forEach(p => r2slots.push(p));
+                        match.player1 = r2slots[matchIdx * 2] || 'TBD';
+                        match.player2 = r2slots[matchIdx * 2 + 1] || 'TBD';
+                    } else {
+                        const prevRound = allRoundsData[roundIdx - 1];
+                        match.player1 = prevRound[matchIdx * 2]?.winner || 'TBD';
+                        match.player2 = prevRound[matchIdx * 2 + 1]?.winner || 'TBD';
+                    }
+                }
+            }
+        }
+        
+        function autoSelectWinner(roundIdx, matchIdx) {
+            const match = allRoundsData[roundIdx][matchIdx];
+            const s1 = parseInt(match.score1) || 0;
+            const s2 = parseInt(match.score2) || 0;
+            if (match.score1 !== '' && match.score2 !== '') {
+                match.winner = s1 > s2 ? match.player1 : s2 > s1 ? match.player2 : null;
+            }
+        }
+        
+        window.selectWinner = function(roundIdx, matchIdx, player) {
+        if (!isEditModeEnabled) return;
+        // Check edit permission
+            const match = allRoundsData[roundIdx][matchIdx];
+            const selected = match[player];
+            if (match.winner === selected) {
+                match.winner = null;
+                for (let i = roundIdx + 1; i < totalRounds; i++) {
+                    allRoundsData[i].forEach(m => { m.winner = null; m.score1 = ''; m.score2 = ''; });
+                }
+            } else {
+                match.winner = selected;
+            }
+            saveToFirebase();
+            renderBracket();
+        };
+        
+        window.updateScore = function(roundIdx, matchIdx, field, value) {
+        if (!isEditModeEnabled) return;
+        // Check edit permission
+            allRoundsData[roundIdx][matchIdx][field] = value;
+            autoSelectWinner(roundIdx, matchIdx);
+            saveToFirebase();
+            renderBracket();
+        };
+        
+        window.updateMatchTime = function(roundIdx, matchIdx, value) {
+        if (!isEditModeEnabled) return;
+        // Check edit permission
+            allRoundsData[roundIdx][matchIdx].time = value;
+            saveToFirebase();
+        };
+        
+        window.startEditName = function(roundIdx, matchIdx, player, event) {// Check edit permission
+            event.stopPropagation();
+            hideContactTooltip();
+            editingState = { roundIdx, matchIdx, player };
+            renderBracket();
+        };
+        
+        window.saveName = function(roundIdx, matchIdx, player, newName, event) {// Check edit permission
+            event.stopPropagation();
+            if (newName.trim()) {
+                const match = allRoundsData[roundIdx][matchIdx];
+                const old = match[player];
+                match[player] = newName.trim();
+                if (match.winner === old) match.winner = newName.trim();
+            }
+            editingState = { roundIdx: null, matchIdx: null, player: null };
+            saveToFirebase();
+            renderBracket();
+        };
+        
+        window.cancelEdit = function(event) {
+            event.stopPropagation();
+            editingState = { roundIdx: null, matchIdx: null, player: null };
+            renderBracket();
+        };
+        
+        window.showContactTooltip = function(event, playerName) {
+        if (!isEditModeEnabled) return;
+        // Only show tooltips to editors/admins
+            if (playerName === 'TBD' || !contactInfo[playerName]) return;
+            clearTimeout(tooltipTimeout);
+            const tooltip = document.getElementById('contact-tooltip');
+            const contact = contactInfo[playerName];
+            const html = isDoubles ? 
+                `<div class="contact-header">👥 Team</div><div class="contact-item"><span class="contact-icon">👤</span>${contact.player1}</div><div class="contact-item"><span class="contact-icon">📧</span>${contact.email1||'N/A'}</div><div class="contact-item"><span class="contact-icon">📱</span>${contact.phone1||'N/A'}</div>${contact.player2!=='Partner TBD'?`<div class="player-divider"></div><div class="contact-item"><span class="contact-icon">👤</span>${contact.player2}</div><div class="contact-item"><span class="contact-icon">📧</span>${contact.email2||'N/A'}</div><div class="contact-item"><span class="contact-icon">📱</span>${contact.phone2||'N/A'}</div>`:''}` :
+                `<div class="contact-header">📞 Contact</div><div class="contact-item"><span class="contact-icon">👤</span>${playerName}</div><div class="contact-item"><span class="contact-icon">📧</span>${contact.email||'N/A'}</div><div class="contact-item"><span class="contact-icon">📱</span>${contact.phone||'N/A'}</div>`;
+            tooltip.innerHTML = html;
+            const rect = event.target.getBoundingClientRect();
+            tooltip.style.left = rect.left + window.scrollX + 'px';
+            tooltip.style.top = rect.bottom + window.scrollY + 10 + 'px';
+            tooltipTimeout = setTimeout(() => tooltip.classList.add('show'), 300);
+        };
+        
+        window.hideContactTooltip = function() {
+            clearTimeout(tooltipTimeout);
+            document.getElementById('contact-tooltip').classList.remove('show');
+        };
+        
+        function renderBracket() {
+            buildBracketTree();
+            const bracketEl = document.getElementById('bracket');
+            bracketEl.innerHTML = '';
+            for (let roundIdx = 0; roundIdx < totalRounds; roundIdx++) {
+                if (!allRoundsData[roundIdx] || allRoundsData[roundIdx].length === 0) break;
+                const roundName = roundIdx === totalRounds - 1 ? 'Final' : roundIdx === totalRounds - 2 ? 'Semi-Finals' : roundIdx === totalRounds - 3 ? 'Quarter-Finals' : `Round ${roundIdx + 1}`;
+                renderRound(roundIdx, roundName, allRoundsData[roundIdx]);
+            }
+            const finalMatch = allRoundsData[totalRounds - 1]?.[0];
+            if (finalMatch?.winner) {
+                document.getElementById('champion-name').textContent = finalMatch.winner;
+                document.getElementById('final-score').textContent = finalMatch.score1 && finalMatch.score2 ? `${finalMatch.score1} - ${finalMatch.score2}` : '';
+                document.getElementById('final-section').classList.add('show');
+            } else {
+                document.getElementById('final-section').classList.remove('show');
+            }
+            applyEditControls();
+        }
+        
+        function renderRound(roundIdx, roundName, matches) {
+            const bracketEl = document.getElementById('bracket');
+            const roundDiv = document.createElement('div');
+            roundDiv.className = 'round';
+            roundDiv.innerHTML = `<div class="round-title">${roundName}</div>`;
+            matches.forEach((match, matchIdx) => {
+                const matchDiv = document.createElement('div');
+                matchDiv.className = 'match';
+                const isEditP1 = editingState.roundIdx === roundIdx && editingState.matchIdx === matchIdx && editingState.player === 'player1';
+                const isEditP2 = editingState.roundIdx === roundIdx && editingState.matchIdx === matchIdx && editingState.player === 'player2';
+                const p1Class = match.player1 === 'TBD' ? 'tbd' : match.winner === match.player1 ? 'winner' : '';
+                const p2Class = match.player2 === 'TBD' ? 'tbd' : match.winner === match.player2 ? 'winner' : '';
+                const p1Content = isEditP1 ? 
+                    `<input type="text" class="name-input" id="edit-input-p1" value="${match.player1}" onkeypress="if(event.key==='Enter')saveName(${roundIdx},${matchIdx},'player1',this.value,event)" onclick="event.stopPropagation()"><button class="save-btn" onclick="saveName(${roundIdx},${matchIdx},'player1',document.getElementById('edit-input-p1').value,event)">✓</button><button class="cancel-btn" onclick="cancelEdit(event)">✗</button>` : 
+                    `<span class="name-text" onmouseenter="showContactTooltip(event,'${match.player1.replace(/'/g,"\\'")}');" onmouseleave="hideContactTooltip()">${match.player1}</span>${match.player1!=='TBD'?`<button class="edit-btn" onclick="startEditName(${roundIdx},${matchIdx},'player1',event)">✏️</button>`:''}${match.winner===match.player1?'<span class="winner-badge">✓</span>':''}`;
+                const p2Content = isEditP2 ? 
+                    `<input type="text" class="name-input" id="edit-input-p2" value="${match.player2}" onkeypress="if(event.key==='Enter')saveName(${roundIdx},${matchIdx},'player2',this.value,event)" onclick="event.stopPropagation()"><button class="save-btn" onclick="saveName(${roundIdx},${matchIdx},'player2',document.getElementById('edit-input-p2').value,event)">✓</button><button class="cancel-btn" onclick="cancelEdit(event)">✗</button>` : 
+                    `<span class="name-text" onmouseenter="showContactTooltip(event,'${match.player2.replace(/'/g,"\\'")}');" onmouseleave="hideContactTooltip()">${match.player2}</span>${match.player2!=='TBD'?`<button class="edit-btn" onclick="startEditName(${roundIdx},${matchIdx},'player2',event)">✏️</button>`:''}${match.winner===match.player2?'<span class="winner-badge">✓</span>':''}`;
+                matchDiv.innerHTML = `<div class="match-header"><div class="match-number">${roundName} - Match ${matchIdx+1}</div><div class="match-time">⏰ <input type="text" placeholder="Time" value="${match.time||''}" onchange="updateMatchTime(${roundIdx},${matchIdx},this.value)" onclick="event.stopPropagation()"></div></div><div class="player-row"><div class="player ${p1Class}" onclick="${!isEditP1&&match.player1!=='TBD'?`selectWinner(${roundIdx},${matchIdx},'player1')`:''}"><div class="player-name">${p1Content}</div></div><input type="number" class="score-input" placeholder="-" value="${match.score1||''}" onchange="updateScore(${roundIdx},${matchIdx},'score1',this.value)" onclick="event.stopPropagation()" min="0"></div><div class="player-row"><div class="player ${p2Class}" onclick="${!isEditP2&&match.player2!=='TBD'?`selectWinner(${roundIdx},${matchIdx},'player2')`:''}"><div class="player-name">${p2Content}</div></div><input type="number" class="score-input" placeholder="-" value="${match.score2||''}" onchange="updateScore(${roundIdx},${matchIdx},'score2',this.value)" onclick="event.stopPropagation()" min="0"></div>`;
+                roundDiv.appendChild(matchDiv);
+            });
+            bracketEl.appendChild(roundDiv);
+            if (editingState.roundIdx !== null) setTimeout(() => { const input = document.getElementById(editingState.player==='player1'?'edit-input-p1':'edit-input-p2'); if(input){input.focus();input.select();} }, 0);
+        }
+        
+        window.resetBracket = function() {
+        // Only admin users can reset brackets
+        if (userRole !== 'admin') {
+            alert("Only administrators can reset the bracket");
+            return;
+        }
+            if (confirm('Reset entire bracket? This will clear all scores and times.')) {
+                initializeBracket();
+                editingState = { roundIdx: null, matchIdx: null, player: null };
+                document.getElementById('final-section').classList.remove('show');
+                saveToFirebase();
+                renderBracket();
+            }
+        };
+        
+        // Initialize on load
+        loadFromFirebase();
+        
+        // Load contact information from Firebase
+        // Load contact information from Firebase asynchronously (non-blocking)
+        async function loadContactsFromFirebase() {
+            if (!isFirebaseConfigured || !db) {
+                console.warn('⚠️ Firebase not configured - contacts unavailable');
+                contactsLoading = false;
+                return;
+            }
+            
+            try {
+                const contactsRef = ref(db, `contacts/${SPORT_KEY}`);
+                const snapshot = await get(contactsRef);
+                
+                if (snapshot.exists()) {
+                    contactInfo = snapshot.val();
+                    contactsLoading = false;
+                    console.log('✅ Contacts loaded from Firebase:', Object.keys(contactInfo).length, 'players');
+                } else {
+                    console.warn('⚠️ No contacts found in Firebase for', SPORT_KEY);
+                    console.log('💡 Use contact_management.html to add contacts');
+                    contactsLoading = false;
+                }
+            } catch (error) {
+                console.error('❌ Error loading contacts:', error);
+                contactsLoading = false;
+            }
+        }
+        
+        // Load contacts on page load
+        loadContactsFromFirebase();
+    </script>
+</body>
+</html>

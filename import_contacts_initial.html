@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Initial Contact Import - Insportsathon</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh; 
+            padding: 20px; 
+        }
+        .container { 
+            max-width: 900px; 
+            margin: 0 auto; 
+            background: white; 
+            border-radius: 15px; 
+            padding: 30px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+        }
+        h1 { 
+            color: #667eea; 
+            margin-bottom: 10px; 
+        }
+        .subtitle { 
+            color: #666; 
+            margin-bottom: 30px; 
+            font-size: 14px; 
+        }
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .success-box {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+        .error-box {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            display: none;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .btn:hover { background: #5568d3; }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .progress {
+            margin: 20px 0;
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #f0f0f0;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            margin-top: 20px;
+            display: none;
+        }
+        .log-entry {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .log-entry:last-child { border-bottom: none; }
+        .log-success { color: #28a745; }
+        .log-error { color: #dc3545; }
+        .log-info { color: #2196f3; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📤 Initial Contact Import to Firebase</h1>
+        <p class="subtitle">One-time import of contact information from CSV files to Firebase</p>
+        
+        <div class="info-box">
+            <strong>ℹ️ What this does:</strong><br>
+            Reads all CSV files and uploads player contact information (email and phone) to Firebase for each sport.
+        </div>
+        
+        <div class="warning-box">
+            <strong>⚠️ Important:</strong><br>
+            • You must be logged in as <strong>admin</strong><br>
+            • This is a one-time setup<br>
+            • Existing contacts in Firebase will be overwritten
+        </div>
+        
+        <div id="success-box" class="success-box"></div>
+        <div id="error-box" class="error-box"></div>
+        
+        <button id="import-btn" class="btn" onclick="startImport()">🚀 Start Import</button>
+        <button class="btn" onclick="window.location.href='contact_management.html'" style="background: #6c757d;">📞 Go to Contact Management</button>
+        
+        <div id="progress" class="progress">
+            <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill">0%</div>
+            </div>
+        </div>
+        
+        <div id="log" class="log"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getDatabase, ref, set, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC2-o5Oo1y0Qkv8JRKa9eM9T4DKzg_fNEQ",
+            authDomain: "insportsathon.firebaseapp.com",
+            databaseURL: "https://insportsathon-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "insportsathon",
+            storageBucket: "insportsathon.firebasestorage.app",
+            messagingSenderId: "197165877753",
+            appId: "1:197165877753:web:caa11db729bb62932f5528"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const auth = getAuth(app);
+
+        let currentUser = null;
+        let userRole = null;
+
+        // Check authentication
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                const roleRef = ref(db, `users/${user.uid}/role`);
+                const snapshot = await get(roleRef);
+                userRole = snapshot.val();
+                
+                if (userRole !== 'admin') {
+                    showError('Access Denied: Admin only');
+                    document.getElementById('import-btn').disabled = true;
+                }
+            } else {
+                showError('Please login first');
+                document.getElementById('import-btn').disabled = true;
+            }
+        });
+
+        const sportCSVFiles = {
+            'TableTennis_Singles': 'TableTennis_Singles.csv',
+            'TableTennis_Doubles': 'TableTennis_Doubles.csv',
+            'Carrom_Singles': 'Carrom_Singles.csv',
+            'Carrom_Doubles': 'Carrom_Doubles.csv',
+            'Foosball': 'Foosball.csv',
+            'Snooker': 'Snooker.csv',
+            'FIFA25': 'FIFA25.csv',
+            'Chess': 'Chess.csv'
+        };
+
+        window.startImport = async function() {
+            if (!currentUser || userRole !== 'admin') {
+                showError('You must be logged in as admin');
+                return;
+            }
+
+            document.getElementById('import-btn').disabled = true;
+            document.getElementById('progress').style.display = 'block';
+            document.getElementById('log').style.display = 'block';
+            
+            const sports = Object.keys(sportCSVFiles);
+            let completed = 0;
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const sport of sports) {
+                try {
+                    addLog(`Processing ${sport}...`, 'info');
+                    
+                    const csvFile = sportCSVFiles[sport];
+                    const response = await fetch(csvFile);
+                    
+                    if (!response.ok) {
+                        throw new Error(`CSV file not found: ${csvFile}`);
+                    }
+                    
+                    const csvText = await response.text();
+                    const contacts = parseCSV(csvText, sport);
+                    
+                    if (Object.keys(contacts).length === 0) {
+                        addLog(`⚠️ No contacts found in ${csvFile}`, 'error');
+                        errorCount++;
+                    } else {
+                        // Upload to Firebase
+                        const contactsRef = ref(db, `contacts/${sport}`);
+                        await set(contactsRef, contacts);
+                        
+                        addLog(`✅ ${sport}: ${Object.keys(contacts).length} contacts uploaded`, 'success');
+                        successCount++;
+                    }
+                } catch (error) {
+                    addLog(`❌ ${sport}: ${error.message}`, 'error');
+                    errorCount++;
+                }
+                
+                completed++;
+                updateProgress((completed / sports.length) * 100);
+            }
+
+            // Final summary
+            addLog(`\n=== IMPORT COMPLETE ===`, 'info');
+            addLog(`✅ Success: ${successCount} sports`, 'success');
+            if (errorCount > 0) {
+                addLog(`❌ Errors: ${errorCount} sports`, 'error');
+            }
+            
+            if (errorCount === 0) {
+                showSuccess(`All contacts imported successfully! ${successCount} sports processed.`);
+            } else {
+                showError(`Import completed with ${errorCount} errors. Check log for details.`);
+            }
+            
+            document.getElementById('import-btn').textContent = '✅ Import Complete';
+        };
+
+        function parseCSV(csvText, sport) {
+            const lines = csvText.split('\n');
+            const contacts = {};
+            
+            // Check if this is a doubles sport
+            const isDoubles = sport.includes('Doubles') || sport === 'Foosball';
+            
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                
+                const columns = parseCSVLine(line);
+                if (columns.length < 4) continue;
+                
+                // Columns: TimeStamp, Email, Name, Phone, ...
+                const email = columns[1];
+                const name = columns[2];
+                const phone = columns[3];
+                
+                if (name && email && phone) {
+                    if (isDoubles) {
+                        // For doubles, try to extract partner info
+                        let partnerName = columns.length > 6 ? columns[6] : '';
+                        let partnerPhone = columns.length > 7 ? columns[7] : '';
+                        let partnerEmail = columns.length > 8 ? columns[8] : '';
+                        
+                        contacts[name] = {
+                            email: email,
+                            phone: phone,
+                            player1: name,
+                            email1: email,
+                            phone1: phone,
+                            player2: partnerName || 'Partner TBD',
+                            email2: partnerEmail || 'N/A',
+                            phone2: partnerPhone || 'N/A'
+                        };
+                    } else {
+                        // Singles
+                        contacts[name] = {
+                            email: email,
+                            phone: phone
+                        };
+                    }
+                }
+            }
+            
+            return contacts;
+        }
+
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            result.push(current.trim());
+            
+            return result;
+        }
+
+        function updateProgress(percent) {
+            const fill = document.getElementById('progress-fill');
+            fill.style.width = percent + '%';
+            fill.textContent = Math.round(percent) + '%';
+        }
+
+        function addLog(message, type = 'info') {
+            const log = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = message;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        function showSuccess(message) {
+            const box = document.getElementById('success-box');
+            box.textContent = '✅ ' + message;
+            box.style.display = 'block';
+        }
+
+        function showError(message) {
+            const box = document.getElementById('error-box');
+            box.textContent = '❌ ' + message;
+            box.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,28 @@
+{
+  "rules": {
+    "tournaments": {
+      "$sportKey": {
+        ".read": true,
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() == 'editor' || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        ".validate": "root.child('tournaments').child($sportKey).exists() || newData.parent().parent().child('users').child(auth.uid).child('role').val() == 'admin'"
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || root.child('users').child(auth.uid).child('role').val() == 'admin')",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
+        "role": {
+          ".validate": "newData.val() == 'viewer' || newData.val() == 'editor' || newData.val() == 'admin'"
+        }
+      }
+    },
+    "contacts": {
+      "$sportKey": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() == 'admin'",
+        ".validate": "root.child('contacts').child($sportKey).exists() || newData.parent().parent().child('users').child(auth.uid).child('role').val() == 'admin'"
+      }
+    }
+  }
+}
+
